@@ -1,32 +1,49 @@
 from models.product import Product
 from repositories.product_repository import ProductRepository
+from services.inventory_service import InventoryService
+
 
 class ProductService:
     def __init__(self):
         self.repo = ProductRepository()
+        self.inventory_service = InventoryService()
 
-    def create_product(self , name , category , price):
+#----------------------------------------------------------
 
-        #Validation
+    def create_product(self, name, category, price):
+
+    # Validation
         if not name or not name.strip():
             raise ValueError("Product name cannot be empty")
-        
+
         if not category or not category.strip():
-            raise ValueError("Product catgory cannot be empty")
-        
+            raise ValueError("Product category cannot be empty")
+
         if price <= 0:
             raise ValueError("Product price must be greater than zero")
 
         product = Product(
-            id = None, 
-            name = name.strip(), 
-            category = category.strip(),
-            price = price
-            )
-        return self.repo.add_product(product)
+            id=None,
+            name=name.strip(),
+            category=category.strip(),
+            price=price
+    )
+
+    # ✅ INSERT ONCE
+        product_id = self.repo.add_product(product)
+
+    # ✅ CREATE STOCK
+        self.inventory_service.ensure_stock_exists(product_id)
+
+    # ✅ RETURN THE SAME ID
+        return product_id
+
+#----------------------------------------------------------
 
     def list_products(self):
         return self.repo.get_all_products()
+    
+#----------------------------------------------------------
     
     def list_product_by_id(self , product_id):
 
@@ -35,12 +52,16 @@ class ProductService:
         
         return self.repo.get_product_by_id(product_id)
     
+#----------------------------------------------------------
+    
     def list_product_by_name(self , product_name):
 
         if not product_name or not product_name.strip():
             raise ValueError("Product name cannot be empty")
         
         return self.repo.get_product_by_name(product_name)
+    
+#----------------------------------------------------------
 
     def change_product(self , product_id , name , price):
 
@@ -59,6 +80,8 @@ class ProductService:
             raise ValueError("Product not found")
         
         return True
+    
+#----------------------------------------------------------
 
     def remove_product(self , product_id):
 

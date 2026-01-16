@@ -13,5 +13,13 @@ def create_table():
     )
     """)
 
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS inventory(
+        product_id INTEGER PRIMARY KEY,
+        quantity INTEGER NOT NULL DEFAULT 0,
+        FOREIGN KEY (product_id) REFERENCES products(id)
+    )
+    """)
+
     conn.commit()
     conn.close()
