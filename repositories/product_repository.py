@@ -1,5 +1,6 @@
+import sqlite3
 from database.db_connection import get_connection
-
+from models.product import Product
 
 
 class ProductRepository:
@@ -26,36 +27,61 @@ class ProductRepository:
 
     def get_all_products(self):
         conn = get_connection()
+        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
         cursor.execute("SELECT * FROM products")
         rows = cursor.fetchall()
         conn.close()
-        return rows
+
+        return [
+            Product(
+                id=row["id"],
+                name=row["name"],
+                category=row["category"],
+                price=row["price"]
+            )   
+            for row in rows
+        ]
+
+
 
     def get_product_by_id(self, product_id):
         conn = get_connection()
+        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
-        cursor.execute(
-            "SELECT * FROM products WHERE id = ?",
-            (product_id,)
-        )
+        cursor.execute("SELECT * FROM products WHERE id = ?", (product_id,))
         row = cursor.fetchone()
         conn.close()
-        return row
+
+        if row:
+            return Product(
+                id=row["id"],
+                name=row["name"],
+                category=row["category"],
+                price=row["price"]
+            )
+        return None
     
     def get_product_by_name(self, name):
         conn = get_connection()
+        conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
 
-        cursor.execute(
-            "SELECT * FROM products WHERE name = ?",
-            (name,)
-        )
+        cursor.execute("SELECT * FROM products WHERE name = ?", (name,))
         row = cursor.fetchone()
         conn.close()
-        return row
+
+        if row:
+            return Product(
+                id=row["id"],
+                name=row["name"],
+                category=row["category"],
+                price=row["price"]
+            )
+        return None
+
 
     def update_product(self, product_id, name , price):
         conn = get_connection()

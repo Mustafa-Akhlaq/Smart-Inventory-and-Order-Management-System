@@ -21,5 +21,28 @@ def create_table():
     )
     """)
 
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS orders(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        created_at TEXT NOT NULL,
+        total_amount REAL NOT NULL,
+        status TEXT DEFAULT 'PLACED'
+    )
+    """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS order_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        order_id INTEGER NOT NULL,
+        product_id INTEGER NOT NULL,
+        quantity INTEGER NOT NULL,
+        price REAL NOT NULL,
+
+        FOREIGN KEY (order_id) REFERENCES orders(id),
+        FOREIGN KEY (product_id) REFERENCES products(id)
+        )
+        """)
+
+
     conn.commit()
     conn.close()

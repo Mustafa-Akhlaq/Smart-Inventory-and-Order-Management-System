@@ -39,7 +39,7 @@ class ProductCLI:
                     print("-" * 35)
 
                     for p in products:
-                        print(f"{p['id']} | {p['name']} | {p['category']} | {p['price']}")
+                        print(f"{p.id} | {p.name} | {p.category} | {p.price}")
 
 #---------------------------------------------------------------------------------------
                 elif choice == "3":
