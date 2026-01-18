@@ -16,78 +16,59 @@ class OrderService:
     #   {"product_id": 3, "quantity": 1}
     # ]
     # ------------------------------------
-    def create_order(self, items: list):
-        if not items:
-            raise ValueError("Order must contain at least one item")
-
+    def create_order(self, items):
         conn = get_connection()
+        cursor = conn.cursor()
 
         try:
-            cursor = conn.cursor()
-            total_amount = 0
-            stock_updates = []
+            # START TRANSACTION
+            conn.execute("BEGIN")
 
-            # 1️⃣ Validate products & stock
+            total_amount = 0
+
+            # 1️⃣ Validate stock & calculate total
             for item in items:
                 product_id = item["product_id"]
                 quantity = item["quantity"]
 
-                if quantity <= 0:
-                    raise ValueError("Quantity must be positive")
-
                 product = self.product_repo.get_product_by_id(product_id)
                 if not product:
-                    raise ValueError(f"Product ID {product_id} not found")
+                    raise Exception(f"Product {product_id} not found")
 
-                stock = self.inventory_repo.get_by_product_id(product_id)
-                if not stock or stock.quantity < quantity:
-                    raise ValueError(f"Insufficient stock for product ID {product_id}")
+                stock = self.inventory_repo.get_stock(product_id)
+                if stock < quantity:
+                    raise Exception(f"Insufficient stock for product ID {product_id}")
 
                 total_amount += product.price * quantity
-                stock_updates.append((product_id, stock.quantity - quantity))
 
             # 2️⃣ Create order
-            cursor.execute(
-                """
+            cursor.execute("""
                 INSERT INTO orders (created_at, total_amount)
                 VALUES (datetime('now'), ?)
-                """,
-                (total_amount,)
-            )
+            """, (total_amount,))
             order_id = cursor.lastrowid
 
-            # 3️⃣ Create order items
+            # 3️⃣ Create order items + deduct stock
             for item in items:
-                product = self.product_repo.get_product_by_id(item["product_id"])
+                product_id = item["product_id"]
+                quantity = item["quantity"]
 
-                cursor.execute(
-                    """
+                product = self.product_repo.get_product_by_id(product_id)
+
+                cursor.execute("""
                     INSERT INTO order_items (order_id, product_id, quantity, price)
                     VALUES (?, ?, ?, ?)
-                    """,
-                    (
-                        order_id,
-                        product.id,
-                        item["quantity"],
-                        product.price
-                    )
-                )
+                """, (order_id, product_id, quantity, product.price))
 
-            # 4️⃣ Deduct inventory
-            for product_id, new_qty in stock_updates:
-                cursor.execute(
-                    """
-                    UPDATE inventory
-                    SET quantity = ?
-                    WHERE product_id = ?
-                    """,
-                    (new_qty, product_id)
-                )
+                # Deduct stock
+                self.inventory_repo.remove_stock(product_id, quantity)
 
+            # ✅ COMMIT TRANSACTION
             conn.commit()
             return order_id
 
         except Exception as e:
+            # ❌ ROLLBACK EVERYTHING
             conn.rollback()
             raise e
 
